@@ -1680,13 +1680,24 @@ async function refresh(){
   document.getElementById('heatmap').innerHTML=(s.heatmap||[]).map(h=>'<div class="item"><span>'+h.name+'</span><div class="bar" style="width:'+Math.min(100,h.frequencyRate*6000)+'%"></div><span class="tag">'+(h.frequencyRate*100).toFixed(3)+'%</span></div>').join('')||'<div class="tag">暂无数据</div>';
   document.getElementById('endangered').innerHTML=(s.endangered||[]).map(e=>'<div class="item"><span>'+e.name+'</span><span class="tag">'+(e.frequencyRate*100).toFixed(4)+'% · '+e.status+'</span></div>').join('')||'<div class="tag">暂无</div>';
   document.getElementById('timeline').innerHTML=(s.timeline||[]).slice(0,10).map(t=>'<div class="item"><span>'+(t.action==='promote'?'🔼':t.action==='demote'?'🔽':t.action==='split'?'✂️':'🧬')+' '+t.skillId+' → '+t.action+'</span><span class="tag">'+ago(t.createdAt)+'</span></div>').join('')||'<div class="tag">暂无</div>';
-  document.getElementById('notifs').innerHTML=(s.notifications||[]).map(n=>'<div class="item '+n.type+'"><span>'+ICON[n.type]+' '+n.title+'</span><span>'+(n.actions||[]).map(a=>'<button class="ghost" onclick="act(\''+n.id+'\',\''+a.id+'\')">'+a.label+'</button>').join('')+'</span></div>').join('')||'<div class="tag">暂无</div>';
-  document.getElementById('reviews').innerHTML=(s.reviews||[]).map(r=>'<div class="item"><span>🧠 '+r.skillName+'</span><span><button onclick="review(\''+r.id+'\',\'accept\')">✅ 通过</button><button class="ghost" onclick="review(\''+r.id+'\',\'reject\')">❌ 拒绝</button></span></div>').join('')||'<div class="tag">暂无</div>';
+  document.getElementById('notifs').innerHTML=(s.notifications||[]).map(n=>'<div class="item '+n.type+'"><span>'+ICON[n.type]+' '+n.title+'</span><span>'+(n.actions||[]).map(a=>'<button class="ghost" data-act="'+a.id+'" data-id="'+n.id+'">'+a.label+'</button>').join('')+'</span></div>').join('')||'<div class="tag">暂无</div>';
+  document.getElementById('reviews').innerHTML=(s.reviews||[]).map(r=>'<div class="item"><span>🧠 '+r.skillName+'</span><span><button data-rv="accept" data-review="'+r.id+'">✅ 通过</button><button class="ghost" data-rv="reject" data-review="'+r.id+'">❌ 拒绝</button></span></div>').join('')||'<div class="tag">暂无</div>';
 }
 async function act(id,action){showResult(await (await fetch('/api/skill-evolve/action',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({notificationId:id,actionId:action})})).json());refresh()}
 async function review(id,action){showResult(await (await fetch('/api/skill-evolve/action',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({reviewId:id,reviewAction:action})})).json());refresh()}
 async function demo(s){showResult(await (await fetch('/api/skill-evolve/demo',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({scenario:s})})).json());refresh()}
 async function runTest(){showResult(await (await fetch('/api/skill-evolve/selftest')).json())}
+document.addEventListener('click',function(ev){
+  var el=ev.target;
+  while(el&&el!==document&&!(el.tagName&&el.tagName.toLowerCase()==='button')) el=el.parentNode;
+  if(!el) return;
+  var id=el.getAttribute('data-id');
+  var a=el.getAttribute('data-act');
+  var rid=el.getAttribute('data-review');
+  var rv=el.getAttribute('data-rv');
+  if(id&&a){act(id,a);}
+  else if(rid&&rv){review(rid,rv);}
+});
 refresh();setInterval(refresh,5000);
 </script></body></html>`
     disposers.push(web.register({ kind: 'exact', path: '/skill-evolve', handler: (req, res) => {
