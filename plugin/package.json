@@ -1,0 +1,8 @@
+{
+  "name": "skill-evolve-host",
+  "description": "Skill 全域自演化架构 — 常驻宿主插件（所有 session 生效）",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "private": true
+}
