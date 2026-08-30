@@ -48,6 +48,21 @@ Invoke-WebRequest http://127.0.0.1:3080/api/skill-evolve/state
 - 全部删除该目录 = 全新开始
 - 测试沙箱：`D:/DSH/.skill-evolve/test-run/`（`evolve_selftest` 使用，自动清理）
 
+### 重置演示数据（保留系统与配置，清空技能/调用/通知/账本）
+
+```powershell
+node -e "const fs=require('fs');const r='D:/DSH/.skill-evolve';fs.rmSync(r+'/workspaces',{recursive:true,force:true});fs.rmSync(r+'/test-run',{recursive:true,force:true});fs.mkdirSync(r+'/workspaces',{recursive:true});for(const d of ['global-skills','promotion-pool'])if(fs.existsSync(r+'/'+d))for(const n of fs.readdirSync(r+'/'+d))if(n!=='.init')fs.rmSync(r+'/'+d+'/'+n,{recursive:true,force:true});const e={'skill_calls.json':[],'daily_aggregates.json':{},'promotion_ledger.json':[],'notifications.json':[],'rejected_feedback.json':[],'promotion_pool_audit.json':[],'misses.json':[],'mutes.json':[],'reviews.json':[]};for(const[k,v]of Object.entries(e))fs.writeFileSync(r+'/metrics/'+k,JSON.stringify(v,null,2),'utf8');console.log('reset done')"
+```
+
+验证：
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:3080/api/skill-evolve/state | ConvertTo-Json -Depth 3
+# counts 全部为 0，heatmap/timeline/notifications 为空即干净
+```
+
+> 注：内存中的静默缓存会在下次 DSH 重启时随 `mutes.json` 清空而刷新。
+
 ## 3. 配置（`D:/DSH/.skill-evolve/config.json`，或仪表盘/设置页调整）
 
 | 键 | 默认 | 说明 |
