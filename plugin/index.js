@@ -439,13 +439,23 @@ export async function apply(ctx) {
         agg[c.skillId] = agg[c.skillId] || { total: 0, success: 0 }
         agg[c.skillId].total++; if (c.success) agg[c.skillId].success++
       }
+      // 合并注册表中全部技能（含 0 调用），保证热度排名完整
+      const names = new Set(Object.keys(agg))
+      for (const g of await listGlobalSkills()) names.add(g.name)
+      const wsRoot = root + '/workspaces'
+      for (const ws of await listDirNames(wsRoot)) {
+        for (const s of await listWsSkills(wsRoot + '/' + ws)) names.add(s.name)
+      }
       const total = calls.filter(c => c.callTime >= since).length || 1
-      const rows = Object.keys(agg).map(k => ({
-        name: k,
-        calls: agg[k].total,
-        successRate: agg[k].success / agg[k].total,
-        frequencyRate: agg[k].total / total
-      })).sort((a, b) => b.frequencyRate - a.frequencyRate)
+      const rows = [...names].map(k => {
+        const a = agg[k] || { total: 0, success: 0 }
+        return {
+          name: k,
+          calls: a.total,
+          successRate: a.total > 0 ? a.success / a.total : 0,
+          frequencyRate: a.total / total
+        }
+      }).sort((a, b) => b.frequencyRate - a.frequencyRate)
       return rows.slice(0, topN || 10)
     }
     async function getEndangeredSkills() {
@@ -1005,7 +1015,7 @@ export async function apply(ctx) {
         wsCount += sk.length
         wsList.push({ wsPath: ws, count: sk.length })
       }
-      const heatmap = await getHeatmap(5, 30)
+      const heatmap = await getHeatmap(20, 30)
       const endangered = await getEndangeredSkills()
       const ledger = await rdJson(LEDGER, [])
       const timeline = ledger.slice(-20).reverse().map(l => ({
@@ -1651,7 +1661,7 @@ export async function apply(ctx) {
 </div>
 <div class="row" id="stats"></div>
 <div class="row" style="gap:10px">
-  <div class="panel" style="flex:1"><h2>📊 热度排行（30天调用占比）</h2><div id="heatmap"></div></div>
+  <div class="panel" style="flex:1"><h2>📊 热度排行（30天调用占比 · 含0调用技能）</h2><div id="heatmap"></div></div>
   <div class="panel" style="flex:1"><h2>⚠️ 濒临降级预警</h2><div id="endangered"></div></div>
 </div>
 <div class="panel"><h2>📋 演化时间线</h2><div id="timeline"></div></div>
